@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="monetag" content="25e843416204bc1ca53fd7435a630628">
+  <title>Free Space Canvas Studio — ID Studio Pro</title>
+
+  <!-- Monetag MultiTag Script -->
+  #<script src="https://quge5.com/88/tag.min.js" data-zone="277437" async data-cfasync="false"></script>
+
+  <!-- Export Dependencies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Roboto:wght@400;500;700;900&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #070b14; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+
+    .sidebar { width: 350px; background: #0f172a; padding: 22px; border-right: 1px solid #1e293b; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+    .canvas-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #030712; position: relative; }
+
+    .panel-title { font-size: 15px; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px; }
+    label { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px; color: #94a3b8; }
+    input, select, button { width: 100%; padding: 9px 10px; border-radius: 6px; border: 1px solid #334155; background: #070b14; color: #fff; font-size: 12px; font-family: inherit; }
+    input:focus, select:focus { outline: none; border-color: #38bdf8; }
+
+    .btn-action { background: #1e293b; border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700; cursor: pointer; transition: 0.2s; }
+    .btn-action:hover { background: #38bdf8; color: #000; }
+    
+    .btn-delete { background: #dc2626; border: none; color: #fff; font-weight: 700; cursor: pointer; transition: 0.2s; }
+    .btn-delete:hover { background: #b91c1c; }
+
+    .btn-export { background: #16a34a; border: none; color: #fff; font-weight: 800; font-size: 13px; cursor: pointer; padding: 13px; border-radius: 8px; margin-top: auto; }
+    .btn-export:hover { background: #15803d; }
+
+    /* The CR-80 High-Res Canvas Area */
+    #design-canvas {
+      width: 270px;
+      height: 430px;
+      background-color: #ffffff;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+      border-radius: 12px;
+      font-family: 'Roboto', sans-serif;
+    }
+
+    /* Draggable Layers */
+    .drag-item {
+      position: absolute;
+      cursor: move;
+      user-select: none;
+      box-sizing: border-box;
+    }
+    .drag-item.selected {
+      outline: 2px dashed #0284c7;
+      outline-offset: 2px;
+    }
+    .drag-text {
+      padding: 2px 4px;
+      outline: none;
+      min-width: 30px;
+      white-space: pre-wrap;
+    }
+    .drag-photo-frame {
+      border-radius: 8px;
+      overflow: hidden;
+      background: #e2e8f0;
+    }
+    .drag-photo-frame img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+    .drag-graphic {
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <a href="index.html" style="color: #94a3b8; font-size: 11px; text-decoration: none; font-weight: 700;">← Back to Main Studio</a>
+    <h2 class="panel-title">Custom Canvas Controls</h2>
+
+    <!-- Template Pull/Loader Dropdown -->
+    <div>
+      <label style="color: #38bdf8;">1. Pull & Edit Existing Template</label>
+      <select id="templatePicker" onchange="loadExistingTemplate(this.value)">
+        <option value="">-- Choose a Preset to Edit --</option>
+        <option value="tpl-reliance">Reliance Corporate (Employee)</option>
+        <option value="tpl-tata">Tata Enterprise (Employee)</option>
+        <option value="tpl-health">Global Healthcare (Employee)</option>
+        <option value="tpl-startup">Tech Startup (Employee)</option>
+        <option value="tpl-kakatiya-purple">Kakatiya High School (Purple)</option>
+        <option value="tpl-gjc-blue">Govt Junior College (Blue)</option>
+        <option value="tpl-srisudha">Sri Sudha CBSE High School</option>
+        <option value="tpl-kakatiya-green">Kakatiya High School (Green)</option>
+        <option value="tpl-gjc-rainbow">Govt Junior College (Rainbow)</option>
+      </select>
+    </div>
+
+    <div>
+      <label>2. Canvas Background</label>
+      <input type="color" id="bgColor" value="#ffffff" onchange="document.getElementById('design-canvas').style.backgroundColor = this.value">
+    </div>
+
+    <div>
+      <label>Upload Blank Frame / Background</label>
+      <input type="file" id="bgFileInput" accept="image/*">
+    </div>
+
+    <hr style="border-color:#1e293b; margin: 4px 0;">
+
+    <button type="button" class="btn-action" onclick="addNewText('Organization Name', 16, '#00529b', true)">+ Add Header Title</button>
+    <button type="button" class="btn-action" onclick="addNewText('Student / Employee Name', 14, '#111827', true)">+ Add Full Name</button>
+    <button type="button" class="btn-action" onclick="addNewText('ID NO : 1123890', 11, '#334155', false)">+ Add Detail Row</button>
+    <button type="button" class="btn-action" onclick="document.getElementById('photoFileInput').click()">+ Add Photo Box</button>
+    <input type="file" id="photoFileInput" accept="image/*" style="display:none;">
+
+    <button type="button" class="btn-delete" onclick="deleteSelectedElement()">Delete Selected Layer</button>
+
+    <div style="font-size: 10px; color: #94a3b8; line-height: 1.5; margin-top: 4px;">
+      • <b>Click & Drag</b> any layer to reposition.<br>
+      • <b>Double-Click</b> any text to edit or customize.<br>
+      • Select any item and press <b>Backspace / Delete</b> or use the button above to remove it.
+    </div>
+
+    <button class="btn-export" id="btnExport2K">Export 2K Ultra HD PDF</button>
+  </aside>
+
+  <main class="canvas-container">
+    <div id="design-canvas">
+      <!-- Default Interactive Elements -->
+      <div class="drag-item drag-text" style="top: 18px; left: 16px; font-family:'Oswald'; font-size: 18px; color: #00529b; font-weight: 800;" contenteditable="true">INSTITUTION NAME</div>
+      <div class="drag-item drag-photo-frame" style="top: 65px; left: 85px; width: 100px; height: 115px; border: 2px solid #00529b;">
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='%23cbd5e1'/><text x='50%' y='50%' font-size='10' fill='%2364748b' text-anchor='middle' dy='.3em'>Photo</text></svg>" alt="Photo">
+      </div>
+      <div class="drag-item drag-text" style="top: 195px; left: 70px; font-size: 16px; font-weight: 800;" contenteditable="true">KALYANI</div>
+      <div class="drag-item drag-text" style="top: 225px; left: 80px; font-size: 11px; background:#00529b; color:#fff; padding:3px 12px; border-radius:99px; font-weight:800;" contenteditable="true">TELE CALLER</div>
+      <div class="drag-item drag-text" style="top: 265px; left: 24px; font-size: 11px; line-height: 1.6; color:#00529b; font-weight:700;" contenteditable="true">ID NO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 1123890
+Mobile No &nbsp;: 79892 90196</div>
+      <!-- Ribbon Footer Graphic (Text Removed) -->
+      <div class="drag-item drag-graphic" style="bottom: 0px; left: 0px; width: 270px; height: 18px; background: linear-gradient(135deg, #00529b 60%, #d92525 60%); border-top-left-radius: 80px 20px;"></div>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('design-canvas');
+    let selectedItem = null;
+    let isDragging = false;
+    let startX, startY, initX, initY;
+
+    // Background Image Loader
+    document.getElementById('bgFileInput').addEventListener('change', function(e) {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => { canvas.style.backgroundImage = `url(${ev.target.result})`; };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Dynamic Photo Box Loader
+    document.getElementById('photoFileInput').addEventListener('change', function(e) {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const wrap = document.createElement('div');
+          wrap.className = 'drag-item drag-photo-frame';
+          wrap.style.top = '100px';
+          wrap.style.left = '85px';
+          wrap.style.width = '100px';
+          wrap.style.height = '115px';
+          wrap.style.border = '2px solid #00529b';
+          wrap.innerHTML = `<img src="${ev.target.result}" alt="Badge Photo" />`;
+          canvas.appendChild(wrap);
+          bindDrag(wrap);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function addNewText(defaultText, size = 12, color = '#0f172a', isBold = false) {
+      const el = document.createElement('div');
+      el.className = 'drag-item drag-text';
+      el.contentEditable = true;
+      el.innerText = defaultText;
+      el.style.fontSize = `${size}px`;
+      el.style.color = color;
+      el.style.fontWeight = isBold ? '800' : '500';
+      el.style.top = '80px';
+      el.style.left = '30px';
+      canvas.appendChild(el);
+      bindDrag(el);
+    }
+
+    function deleteSelectedElement() {
+      if (selectedItem) {
+        selectedItem.remove();
+        selectedItem = null;
+      }
+    }
+
+    function bindDrag(el) {
+      el.addEventListener('mousedown', dragStart);
+    }
+
+    function dragStart(e) {
+      selectedItem = e.currentTarget;
+      document.querySelectorAll('.drag-item').forEach(i => i.classList.remove('selected'));
+      selectedItem.classList.add('selected');
+
+      initX = selectedItem.offsetLeft;
+      initY = selectedItem.offsetTop;
+      startX = e.clientX;
+      startY = e.clientY;
+      isDragging = true;
+
+      document.addEventListener('mousemove', dragMove);
+      document.addEventListener('mouseup', dragEnd);
+    }
+
+    function dragMove(e) {
+      if (!isDragging || !selectedItem) return;
+      selectedItem.style.left = `${initX + (e.clientX - startX)}px`;
+      selectedItem.style.top = `${initY + (e.clientY - startY)}px`;
+    }
+
+    function dragEnd() {
+      isDragging = false;
+      document.removeEventListener('mousemove', dragMove);
+      document.removeEventListener('mouseup', dragEnd);
+    }
+
+    // Keyboard removal
+    document.addEventListener('keydown', function(e) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedItem) {
+        if (document.activeElement !== selectedItem) {
+          selectedItem.remove();
+          selectedItem = null;
+        }
+      }
+    });
+
+    // Deselect on canvas backdrop click
+    canvas.addEventListener('mousedown', function(e) {
+      if (e.target === canvas) {
+        document.querySelectorAll('.drag-item').forEach(i => i.classList.remove('selected'));
+        selectedItem = null;
+      }
+    });
+
+    // Bind startup items
+    document.querySelectorAll('.drag-item').forEach(bindDrag);
+
+    // ==============================================================
+    // PULL & LOAD EXISTING PRESET TEMPLATES ONTO CANVAS
+    // ==============================================================
+    function loadExistingTemplate(tplKey) {
+      if (!tplKey) return;
+      canvas.innerHTML = '';
+      canvas.style.backgroundImage = 'none';
+      canvas.style.backgroundColor = '#ffffff';
+
+      const defaultPhoto = `<img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='%23cbd5e1'/><text x='50%' y='50%' font-size='10' fill='%2364748b' text-anchor='middle' dy='.3em'>Photo</text></svg>" alt="Photo">`;
+
+      if (tplKey === 'tpl-reliance') {
+        canvas.innerHTML = `
+          <div class="drag-item drag-graphic" style="top:0; left:0; width:270px; height:46px; background:#00529b;"></div>
+          <div class="drag-item drag-text" style="top:10px; left:12px; color:#fff; font-size:22px; font-weight:900;" contenteditable="true">&#9650;</div>
+          <div class="drag-item drag-text" style="top:8px; right:12px; color:#fff; font-size:14px; font-weight:900; text-align:right;" contenteditable="true">RELIANCE Communications
+<span style="font-size:7.5px; font-weight:500; opacity:0.9;">Anil Dhirubhai Ambani Group</span></div>
+          <div class="drag-item drag-graphic" style="top:46px; left:0; width:270px; height:4px; background:linear-gradient(90deg,#d92525 50%,#00529b 50%);"></div>
+          <div class="drag-item drag-photo-frame" style="top:62px; left:80px; width:110px; height:120px; border:3px solid #00529b; border-radius:12px;">${defaultPhoto}</div>
+          <div class="drag-item drag-text" style="top:190px; left:75px; font-family:'Oswald'; font-size:23px; color:#00529b;" contenteditable="true">KALYANI</div>
+          <div class="drag-item drag-text" style="top:225px; left:80px; background:#00529b; color:#fff; border-radius:99px; padding:3px 14px; font-weight:800; font-size:12px;" contenteditable="true">TELE CALLER</div>
+          <div class="drag-item drag-text" style="top:260px; left:24px; font-size:12px; font-weight:700; color:#00529b; line-height:1.6;" contenteditable="true">ID NO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 1123890
+Mobile No &nbsp;: 79892 90196</div>
+          <div class="drag-item drag-graphic" style="bottom:0; left:0; width:270px; height:18px; background:linear-gradient(135deg,#00529b 60%,#d92525 60%); border-top-left-radius:80px 20px;"></div>
+        `;
+      } else if (tplKey === 'tpl-tata') {
+        canvas.style.backgroundColor = '#f8fafc';
+        canvas.innerHTML = `
+          <div class="drag-item drag-graphic" style="top:0; left:0; width:270px; height:50px; background:#0f172a; border-bottom:4px solid #2563eb;"></div>
+          <div class="drag-item drag-text" style="top:8px; left:20px; width:230px; text-align:center; color:#fff; font-size:15px; font-weight:900;" contenteditable="true">TATA CONSULTANCY SERVICES
+<span style="font-size:7.5px; color:#38bdf8; letter-spacing:1px;">OFFICIAL ACCESS PASS</span></div>
+          <div class="drag-item drag-photo-frame" style="top:64px; left:82px; width:105px; height:115px; border:3px solid #0f172a;">${defaultPhoto}</div>
+          <div class="drag-item drag-text" style="top:188px; left:70px; font-family:'Oswald'; font-size:21px; color:#0f172a;" contenteditable="true">ARJUN MEHTA</div>
+          <div class="drag-item drag-text" style="top:218px; left:75px; background:#2563eb; color:#fff; border-radius:4px; padding:3px 14px; font-weight:800; font-size:11.5px;" contenteditable="true">SR. SYSTEMS ANALYST</div>
+          <div class="drag-item drag-text" style="top:254px; left:24px; font-size:11.5px; font-weight:700; color:#334155; line-height:1.6;" contenteditable="true">STAFF ID &nbsp;&nbsp;&nbsp;: TC-99201
+DEPT &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: CLOUD INFRA</div>
+          <div class="drag-item drag-graphic" style="bottom:0; left:0; width:270px; height:22px; background:#0f172a; border-top:3px solid #2563eb;"></div>
+          <div class="drag-item drag-text" style="bottom:2px; left:14px; color:#fff; font-family:monospace; font-size:12px; font-weight:900;" contenteditable="true">|||| ||| ||||| || ||||||</div>
+        `;
+      } else if (tplKey === 'tpl-health') {
+        canvas.innerHTML = `
+          <div class="drag-item drag-graphic" style="top:0; left:0; width:270px; height:6px; background:#dc2626;"></div>
+          <div class="drag-item drag-text" style="top:12px; left:10px; width:250px; text-align:center; color:#1e3a8a; font-family:'Oswald'; font-size:19px; font-weight:700;" contenteditable="true">APOLLO HEALTHCARE
+<span style="font-size:8px; color:#dc2626; font-family:'Roboto'; font-weight:800; letter-spacing:1px; display:block;">MEDICAL ACCESS CARD</span></div>
+          <div class="drag-item drag-photo-frame" style="top:58px; left:80px; width:110px; height:110px; border-radius:50%; border:4px solid #fee2e2;">${defaultPhoto}</div>
+          <div class="drag-item drag-text" style="top:178px; left:60px; font-size:17px; font-weight:900; color:#1e3a8a;" contenteditable="true">DR. SNEHA REDDY</div>
+          <div class="drag-item drag-text" style="top:205px; left:82px; background:#dc2626; color:#fff; padding:3px 14px; font-weight:800; font-size:11px;" contenteditable="true">CHIEF SURGEON</div>
+          <div class="drag-item drag-text" style="top:242px; left:20px; font-size:11px; font-weight:700; color:#475569; line-height:1.6;" contenteditable="true">EMP ID &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: AP-3419
+DEPARTMENT : CARDIOLOGY
+BLOOD GROUP : O+</div>
+          <div class="drag-item drag-graphic" style="bottom:0; left:0; width:270px; height:16px; background:linear-gradient(90deg,#dc2626 40%,#1e3a8a 40%);"></div>
+        `;
+      } else if (tplKey === 'tpl-startup') {
+        canvas.style.backgroundColor = '#0b0f19';
+        canvas.innerHTML = `
+          <div class="drag-item drag-graphic" style="top:12px; left:12px; width:246px; height:44px; background:#111827; border-left:4px solid #06b6d4;"></div>
+          <div class="drag-item drag-text" style="top:18px; left:24px; font-size:15px; font-weight:800; color:#06b6d4;" contenteditable="true">NEXUS AI SYSTEMS
+<span style="font-size:8px; color:#94a3b8; letter-spacing:1px; display:block;">CORE ENGINEERING ACCESS</span></div>
+          <div class="drag-item drag-photo-frame" style="top:66px; left:85px; width:100px; height:100px; border:2px solid #06b6d4; border-radius:12px;">${defaultPhoto}</div>
+          <div class="drag-item drag-text" style="top:176px; left:80px; font-size:18px; font-weight:700; color:#fff;" contenteditable="true">VIKRAM SEN</div>
+          <div class="drag-item drag-text" style="top:202px; left:78px; color:#38bdf8; font-size:11px; font-weight:700;" contenteditable="true">LEAD ARCHITECT</div>
+          <div class="drag-item drag-text" style="top:236px; left:20px; font-size:10.5px; color:#cbd5e1; font-family:monospace; line-height:1.6;" contenteditable="true">SYS_UID &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: NX-7704
+ACCESS_LEVEL : LEVEL-4
+CLEARANCE &nbsp;&nbsp;&nbsp;: VALIDATED</div>
+          <div class="drag-item drag-graphic" style="bottom:0; left:0; width:270px; height:14px; background:#111827; border-top:2px solid #06b6d4;"></div>
+        `;
+      } else if (tplKey === 'tpl-kakatiya-purple') {
+        canvas.style.backgroundColor = '#2b1f58';
+        canvas.innerHTML = `
+          <div class="drag-item drag-text" style="top:14px; left:10px; width:250px; text-align:center; color:#fff; font-family:'Oswald'; font-size:21px; font-weight:800;" contenteditable="true">KAKATIYA
+<span style="font-size:13px; font-family:'Roboto'; display:block;">E.M. HIGH SCHOOL</span></div>
+          <div class="drag-item drag-photo-frame" style="top:62px; left:82px; width:105px; height:105px; border-radius:50%; border:4px solid #4cd1a4;">${defaultPhoto}</div>
+          <div class="drag-item drag-text" style="top:175px; left:75px; font-size:16px; font-weight:800; color:#fff;" contenteditable="true">RAKSHITHA. B</div>
+          <div class="drag-item drag-text" style="top:202px; left:20px; font-size:11px; font-weight:600; color:#fff; line-height:1.6;" contenteditable="true">Father Name : Anantha Padmanabha
+Class &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: III
+Section &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: AO
+Mobile No. &nbsp;&nbsp;: 8464069013
+Admn. No. &nbsp;&nbsp;&nbsp;&nbsp;: 0713</div>
+          <div class="drag-item drag-graphic" style="bottom:0; left:0; width:270px; height:28px; background:#1b123d; border-top:2px solid #00a8ff;"></div>
+          <div class="drag-item drag-text" style="bottom:3px; left:0; width:270px; text-align:center; font-size:8.5px; font-weight:700; color:#00d2d3;" contenteditable="true">PRINCIPAL
+Maddur Nagar, KURNOOL-518002, Ph:90307 87155</div>
+        `;
+      } else if (tplKey === 'tpl-gjc-blue') {
+        canvas.innerHTML = `
+          <div class="drag-item drag-graphic" style="top:0; left:0; width:270px; height:48px; background:#00529b;"></div>
+          <div class="drag-item drag-text" style="top:8px; left:10px; width:250px; text-align:center; color:#fff; font-family:'Oswald'; font-size:18px; font-weight:800;" contenteditable="true">GOVERNMENT JUNIOR COLLEGE
+<span style="font-size:8px; font-family:'Roboto'; display:block;">MANTRALAYAM, Kurnool(Dist)-518345</span></div>
+          <div class="drag-item drag-photo-frame" style="top:58px; left:88px; width:95px; height:105px; border:2px solid #00529b; border-radius:8px;">${defaultPhoto}</div>
+          <div class="drag-item drag-text" style="top:170px; left:75px; font-size:16px; font-weight:800; color:#00529b;" contenteditable="true">P. UMADEVI</div>
+          <div class="drag-item drag-text" style="top:198px; left:20px; font-size:11px; font-weight:700; color:#111; line-height:1.6;" contenteditable="true">Father Name : P. AYYAPPA
+Group &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: Bi.P.C
+PEN No. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 20260625923
+Mobile No. &nbsp;&nbsp;: 8096798830</div>
+          <div class="drag-item drag-graphic" style="bottom:0; left:0; width:270px; height:46px; background:#00529b; border-top-left-radius:140px 30px; border-top-right-radius:140px 30px;"></div>
+          <div class="drag-item drag-text" style="bottom:48px; right:16px; font-size:8.5px; color:#00529b; font-weight:700;" contenteditable="true">Principal Signature</div>
+        `;
+      } else if (tplKey === 'tpl-srisudha') {
+        canvas.innerHTML = `
+          <div class="drag-item drag-graphic" style="top:0; left:0; width:270px; height:50px; background:#e2e8f0; border-bottom:2px solid #d92525;"></div>
+          <div class="drag-item drag-text" style="top:6px; left:10px; width:250px; text-align:center; font-family:'Oswald'; font-size:20px; font-weight:800; color:#d92525;" contenteditable="true">SRI SUDHA CBSE HIGH SCHOOL
+<span style="font-size:8px; color:#1e293b; font-family:'Roboto'; display:block;">Near Ayyappa Swamy Temple, DHONE</span></div>
+          <div class="drag-item drag-text" style="top:66px; left:14px; font-size:10px; font-weight:800; color:#64748b; writing-mode:vertical-rl; transform:rotate(180deg);" contenteditable="true">2026 - 2027</div>
+          <div class="drag-item drag-photo-frame" style="top:58px; left:85px; width:95px; height:105px; border:2px solid #0284c7; border-radius:8px;">${defaultPhoto}</div>
+          <div class="drag-item drag-text" style="top:170px; left:50px; font-size:15px; font-weight:800; color:#78350f;" contenteditable="true">ANJANA SOWMYA. K</div>
+          <div class="drag-item drag-text" style="top:196px; left:20px; font-size:11px; font-weight:700; color:#0f172a; line-height:1.55;" contenteditable="true">Father Name : HARI SHANKAR.K
+Class &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: IX-A1
+Mobile &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 8309530728
+Area &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: PENUMADA</div>
+          <div class="drag-item drag-graphic" style="bottom:0; left:0; width:270px; height:18px; background:#94a3b8;"></div>
+          <div class="drag-item drag-text" style="bottom:2px; left:0; width:270px; text-align:center; font-size:8px; font-weight:700; color:#000;" contenteditable="true">Near Ayyappa Swamy Temple, DHONE, Ph:8519992144</div>
+        `;
+      } else if (tplKey === 'tpl-kakatiya-green') {
+        canvas.innerHTML = `
+          <div class="drag-item drag-graphic" style="top:0; left:0; width:270px; height:46px; background:#008744;"></div>
+          <div class="drag-item drag-text" style="top:6px; left:10px; width:250px; text-align:center; color:#fff; font-family:'Oswald'; font-size:20px; font-weight:800;" contenteditable="true">KAKATIYA
+<span style="font-size:10.5px; font-family:'Roboto'; display:block;">ENGLISH MEDIUM HIGH SCHOOL</span></div>
+          <div class="drag-item drag-photo-frame" style="top:56px; left:85px; width:100px; height:105px; border:2px solid #000;">${defaultPhoto}</div>
+          <div class="drag-item drag-graphic" style="top:166px; left:0; width:270px; height:24px; background:#1e3a8a;"></div>
+          <div class="drag-item drag-text" style="top:168px; left:0; width:270px; text-align:center; color:#fff; font-family:'Oswald'; font-size:16px; font-weight:700;" contenteditable="true">SASHIDHAR</div>
+          <div class="drag-item drag-text" style="top:198px; left:20px; font-size:11px; font-weight:700; color:#000; line-height:1.55;" contenteditable="true">Father Name : Anantha Padmanabha
+Class &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: X
+Section &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: AO
+Mobile No. &nbsp;&nbsp;: 8464069013</div>
+          <div class="drag-item drag-graphic" style="bottom:0; left:0; width:270px; height:18px; background:#008744;"></div>
+          <div class="drag-item drag-text" style="bottom:2px; left:0; width:270px; text-align:center; font-size:8px; font-weight:700; color:#fff;" contenteditable="true">Near Ayyappa Swamy Temple, DHONE, Ph:8519992144</div>
+        `;
+      } else if (tplKey === 'tpl-gjc-rainbow') {
+        canvas.innerHTML = `
+          <div class="drag-item drag-graphic" style="top:0; left:0; width:270px; height:12px; background:linear-gradient(90deg,#00529b 25%,#f59e0b 50%,#10b981 75%,#ef4444 100%);"></div>
+          <div class="drag-item drag-text" style="top:14px; left:10px; width:250px; text-align:center; color:#dc2626; font-family:'Oswald'; font-size:18px; font-weight:800;" contenteditable="true">GOVERNMENT JUNIOR COLLEGE
+<span style="font-size:8.5px; color:#00529b; font-family:'Roboto'; display:block;">MANTRALAYAM, Kurnool(Dist)-518345</span></div>
+          <div class="drag-item drag-photo-frame" style="top:56px; left:88px; width:95px; height:105px; border:2px solid #00529b; border-radius:8px;">${defaultPhoto}</div>
+          <div class="drag-item drag-text" style="top:168px; left:75px; font-size:16px; font-weight:800; color:#00529b;" contenteditable="true">P. UMADEVI</div>
+          <div class="drag-item drag-text" style="top:196px; left:20px; font-size:11px; font-weight:700; color:#111; line-height:1.55;" contenteditable="true">Father Name : P. AYYAPPA
+Group &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: Bi.P.C
+PEN No. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 20260625923
+Mobile No &nbsp;&nbsp;&nbsp;: 8096798830</div>
+          <div class="drag-item drag-graphic" style="bottom:0; left:0; width:270px; height:16px; background:linear-gradient(90deg,#ef4444 0%,#f59e0b 35%,#10b981 70%,#00529b 100%);"></div>
+        `;
+      }
+
+      // Re-attach draggable listeners to all loaded layers
+      canvas.querySelectorAll('.drag-item').forEach(bindDrag);
+    }
+
+    // ==============================================================
+    // 2K ULTRA HD CUSTOM PDF EXPORT
+    // ==============================================================
+    document.getElementById('btnExport2K').addEventListener('click', async () => {
+      window.open('https://omg10.com/4/11736862', '_blank', 'noopener,noreferrer');
+
+      document.querySelectorAll('.drag-item').forEach(i => i.classList.remove('selected'));
+      const originalShadow = canvas.style.boxShadow;
+      canvas.style.boxShadow = 'none';
+
+      try {
+        const renderCanvas = await html2canvas(canvas, {
+          scale: 5,
+          useCORS: true,
+          logging: false,
+          backgroundColor: null,
+          imageTimeout: 0
+        });
+
+        canvas.style.boxShadow = originalShadow;
+
+        const imgData = renderCanvas.toDataURL('image/png', 1.0);
+        const cardWidthMm = 54;
+        const cardHeightMm = 85.6;
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: [cardWidthMm, cardHeightMm],
+          compress: true
+        });
+
+        pdf.addImage(imgData, 'PNG', 0, 0, cardWidthMm, cardHeightMm, undefined, 'FAST');
+        pdf.save('Custom_Badge_2K_Print.pdf');
+      } catch (err) {
+        canvas.style.boxShadow = originalShadow;
+        console.error('Builder 2K export failed:', err);
+      }
+    });
+  </script>
+</body>
+</html>
